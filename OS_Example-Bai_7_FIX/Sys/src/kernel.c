@@ -12,7 +12,7 @@ CounterType* alarm_to_counter[MAX_ALARMS];
 void Led_Toggle();
 void LedA_Toggle();
 
-static int dem = 0;      // Biến đếm theo dõi schedule table
+static uint32_t dem = 0;      // Biến đếm theo dõi schedule table
 
 #define COUNTER_NUM 2
 CounterType counter_table[COUNTER_NUM] = {
@@ -309,7 +309,6 @@ uint8_t StartScheduleTableRel(uint8_t table_id, TickType offset) {
     ScheduleTableType *tbl = &schedule_table_list[table_id];
     tbl->start_time = (tbl->counter->current_value + offset) % tbl->counter->max_allowed_value;
     tbl->current_ep = 0;
-    dem -= offset;              // Vì kích hoạt lần đầu (khi cấp nguồn hệ thống bắt đầu chạy) nên vì ở đây active luôn để đúng - đi offset 
     tbl->active = 1;
 
     return E_OK;
@@ -373,7 +372,7 @@ void ScheduleTable_Tick(CounterTypeId cid) {
         // } 
         
         
-        while (tbl->current_ep < tbl->num_eps && dem == tbl->eps[tbl->current_ep].offset) {
+        while (tbl->current_ep < tbl->num_eps && (dem - tbl->start_time) == tbl->eps[tbl->current_ep].offset) {
 
             ExpiryPoint *ep = &tbl->eps[tbl->current_ep];
 
@@ -396,7 +395,8 @@ void ScheduleTable_Tick(CounterTypeId cid) {
             if (tbl->cyclic) {
                 tbl->start_time = tbl->counter->current_value;
                 tbl->current_ep = 0;
-                dem = 0;                                // Đến chu kì kích hoạt tiếp theo của bảng schedule nên reset về 0 đếm lại
+                dem = tbl->start_time;  // đến duration thì cho bằng lại start_timer tại thời điểm bây giờ đếm cộng tiếp vì dòng 375 
+                                          // ý tưởng là hiệu giữa dem và start_time để xem offset.                               
             } else {
                 tbl->active = 0;
                 dem = 0;

@@ -85,11 +85,13 @@ void SysTick_Init(void) {
                SYSTICK_CTRL_CLKSRC;           // Enable SysTick + interrupt + processor clock
 }
 
+volatile int cnt;
+
 /**
  * @brief SysTick interrupt handler, tick counter
  */
 void SysTick_Handler(void) {
-    
+    cnt++;
     Counter_Tick(0); // Assume Counter 0 is counter_1ms
 }
 
