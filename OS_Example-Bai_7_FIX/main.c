@@ -85,13 +85,14 @@ void SysTick_Init(void) {
                SYSTICK_CTRL_CLKSRC;           // Enable SysTick + interrupt + processor clock
 }
 
-volatile int cnt;
+volatile uint32_t checkVariable;   // Nếu biến này mình chỉ debug xem đến cùng lắm là giá trị hơn 3 tỷ rồi xóa đi thì hệ thống chạy ổn định
+                                       // mãi đến khi mình ngắt nguồn
 
 /**
  * @brief SysTick interrupt handler, tick counter
  */
 void SysTick_Handler(void) {
-    cnt++;
+    checkVariable++;
     Counter_Tick(0); // Assume Counter 0 is counter_1ms
 }
 

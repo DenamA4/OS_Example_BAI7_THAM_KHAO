@@ -13,6 +13,7 @@ void Led_Toggle();
 void LedA_Toggle();
 
 static uint32_t dem = 0;      // Biến đếm theo dõi schedule table
+                              // Lý do thao tác với biến này, vì duration có thể lớn hơn max_allowed_value 
 
 #define COUNTER_NUM 2
 CounterType counter_table[COUNTER_NUM] = {
@@ -370,9 +371,13 @@ void ScheduleTable_Tick(CounterTypeId cid) {
         //     rel_time = tbl->counter->max_allowed_value - tbl->start_time + ((tbl->eps[tbl->current_ep].offset / tbl->counter->max_allowed_value) +
                                                                                             // (tbl->eps[tbl->current_ep].offset % tbl->counter->max_allowed_value));
         // } 
+
         
-        
-        while (tbl->current_ep < tbl->num_eps && (dem - tbl->start_time) == tbl->eps[tbl->current_ep].offset) {
+        uint32_t cnt = 0;
+        if (dem < tbl->start_time) cnt = tbl->start_time - dem;  // Vì expression trong if mà so sánh 2 số 1 là int 2 là unsigned int nó sẽ bị sai
+        else cnt = dem - tbl->start_time;
+
+        while (tbl->current_ep < tbl->num_eps && cnt == tbl->eps[tbl->current_ep].offset) {
 
             ExpiryPoint *ep = &tbl->eps[tbl->current_ep];
 
@@ -391,7 +396,10 @@ void ScheduleTable_Tick(CounterTypeId cid) {
             tbl->current_ep++;         
         }
 
-        if (dem >= tbl->duration) {
+
+
+        if (cnt >= tbl->duration) {   // Lưu ý đoạn này dem tính từ thời điểm start_time đầu đến thời điểm start_time 2 (là duration)
+                                                                    // Nên trừ thêm phần tbl->start_time
             if (tbl->cyclic) {
                 tbl->start_time = tbl->counter->current_value;
                 tbl->current_ep = 0;
