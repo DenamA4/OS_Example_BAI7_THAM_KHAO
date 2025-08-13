@@ -310,6 +310,7 @@ uint8_t StartScheduleTableRel(uint8_t table_id, TickType offset) {
     ScheduleTableType *tbl = &schedule_table_list[table_id];
     tbl->start_time = (tbl->counter->current_value + offset) % tbl->counter->max_allowed_value;
     tbl->current_ep = 0;
+    dem = tbl->counter->current_value;    // Thời điểm gọi hàm này có thể thời điểm != 0
     tbl->active = 1;
 
     return E_OK;
@@ -325,6 +326,7 @@ uint8_t StartScheduleTableAbs(uint8_t table_id, TickType start) {
     ScheduleTableType *tbl = &schedule_table_list[table_id];
     tbl->start_time = start % tbl->counter->max_allowed_value;
     tbl->current_ep = 0;
+    dem = tbl->counter->current_value;    // Thời điểm gọi hàm này có thể thời điểm != 0
     tbl->active = 1;
 
     return E_OK;
