@@ -308,7 +308,8 @@ uint8_t StartScheduleTableRel(uint8_t table_id, TickType offset) {
         return E_OS_LIMIT;
 
     ScheduleTableType *tbl = &schedule_table_list[table_id];
-    tbl->start_time = (tbl->counter->current_value + offset) % tbl->counter->max_allowed_value;
+    tbl->start_time = tbl->counter->current_value + offset;  // Vì offset có thể cộng vô giá trị hiện tại của counter làm tràn max_counter
+    
     tbl->current_ep = 0;
     dem = tbl->counter->current_value;    // Thời điểm gọi hàm này có thể thời điểm != 0
     tbl->active = 1;
@@ -324,7 +325,24 @@ uint8_t StartScheduleTableAbs(uint8_t table_id, TickType start) {
         return E_OS_LIMIT;
 
     ScheduleTableType *tbl = &schedule_table_list[table_id];
-    tbl->start_time = start % tbl->counter->max_allowed_value;
+    if (tbl->start_time < tbl->counter->current_value) {
+        
+        tbl->start_time = tbl->counter->current_value + (start + tbl->counter->max_allowed_value - tbl->counter->current_value + 1); 
+        
+        /*
+        
+            Giải thích đoạn này: Ví dụ max_conter = 10000, current_value_counter = 7000 và start = 5000:
+            
+            + từ 0 -> 5000 là 5000 lần đếm của counter
+            + từ 10000 -> 0 là 1 lần đếm : đây là lí do cộng thêm 1 
+            + current_value_counter -> 10000 là 3000 lần đếm
+            
+            --> tổng 8001 lần đếm nữa thì schedule_table mới đến thời điểm lấy làm mốc tính offset để thực hiện EP
+        
+        */
+
+    } else tbl->start_time = start;
+
     tbl->current_ep = 0;
     dem = tbl->counter->current_value;    // Thời điểm gọi hàm này có thể thời điểm != 0
     tbl->active = 1;
@@ -365,16 +383,12 @@ void ScheduleTable_Tick(CounterTypeId cid) {
 
         if (!tbl->active || tbl->counter != &counter_table[cid]) continue;
 
-        dem++;   // Bắt đầu tăng khi 1 schedule table được kích hoạt --> Tức tbl->active = 1 --> Dòng 364 bên trên
-
-        
         // if (tbl->eps[tbl->current_ep].offset + tbl->start_time > tbl->counter->max_allowed_value)  // start time luôn luôn < max_value
         // {
         //     rel_time = tbl->counter->max_allowed_value - tbl->start_time + ((tbl->eps[tbl->current_ep].offset / tbl->counter->max_allowed_value) +
                                                                                             // (tbl->eps[tbl->current_ep].offset % tbl->counter->max_allowed_value));
         // } 
 
-        
         uint32_t cnt = 0;
         if (dem < tbl->start_time) cnt = tbl->start_time - dem;  // Vì expression trong if mà so sánh 2 số 1 là int 2 là unsigned int nó sẽ bị sai
         else cnt = dem - tbl->start_time;
@@ -398,8 +412,6 @@ void ScheduleTable_Tick(CounterTypeId cid) {
             tbl->current_ep++;         
         }
 
-
-
         if (cnt >= tbl->duration) {   // Lưu ý đoạn này dem tính từ thời điểm start_time đầu đến thời điểm start_time 2 (là duration)
                                                                     // Nên trừ thêm phần tbl->start_time
             if (tbl->cyclic) {
@@ -411,6 +423,9 @@ void ScheduleTable_Tick(CounterTypeId cid) {
                 tbl->active = 0;
                 dem = 0;
             }
+        } else {
+            dem++;   // Bắt đầu tăng khi 1 schedule table được kích hoạt --> Tức tbl->active = 1 
+                    // Lí do đặt ở đây do có trường hợp dem == start_time và 1 ep có offset = 0 tức tại thời điểm = start_time
         }
     }
 }
