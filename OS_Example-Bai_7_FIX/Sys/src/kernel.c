@@ -325,7 +325,7 @@ uint8_t StartScheduleTableAbs(uint8_t table_id, TickType start) {
         return E_OS_LIMIT;
 
     ScheduleTableType *tbl = &schedule_table_list[table_id];
-    if (tbl->start_time < tbl->counter->current_value) {
+    if (start < tbl->counter->current_value) {
         
         tbl->start_time = tbl->counter->current_value + (start + tbl->counter->max_allowed_value - tbl->counter->current_value + 1); 
         
